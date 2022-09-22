@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -19,6 +22,25 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseRateLimiter(new RateLimiterOptions
+{
+    OnRejected = (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.Lease.GetAllMetadata().ToList().ForEach(x =>
+        {
+            app.Logger.LogError(message: x.Key, x.Value);
+        });
+        return new ValueTask();
+    },
+    RejectionStatusCode = StatusCodes.Status429TooManyRequests
+}.AddConcurrencyLimiter("controller", options =>
+{
+    options.QueueLimit = 1;
+    options.PermitLimit = 1;
+    options.QueueProcessingOrder = QueueProcessingOrder.NewestFirst;
+}));
 
 app.MapControllers();
 
