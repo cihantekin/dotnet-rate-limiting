@@ -40,7 +40,23 @@ app.UseRateLimiter(new RateLimiterOptions
     options.QueueLimit = 1;
     options.PermitLimit = 1;
     options.QueueProcessingOrder = QueueProcessingOrder.NewestFirst;
+
+// Takes 3 requests and then wait 10 secons to refresh tokens. 
+}).AddTokenBucketLimiter("tokenlimit", options =>
+{
+    options.QueueLimit = 0;
+    options.TokenLimit = 3;
+    options.AutoReplenishment = true;
+    options.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
+    options.QueueProcessingOrder = QueueProcessingOrder.NewestFirst;
+    options.TokensPerPeriod = 3;
 }));
+
+app.MapGet("/testtokenlimit", context =>
+{
+    context.Response.StatusCode = StatusCodes.Status200OK;
+    return context.Response.WriteAsync("Hey you!");
+}).RequireRateLimiting("tokenlimit");
 
 app.MapControllers().RequireRateLimiting("controller");
 
