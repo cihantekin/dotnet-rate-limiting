@@ -42,6 +42,6 @@ app.UseRateLimiter(new RateLimiterOptions
     options.QueueProcessingOrder = QueueProcessingOrder.NewestFirst;
 }));
 
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("controller");
 
 app.Run();
